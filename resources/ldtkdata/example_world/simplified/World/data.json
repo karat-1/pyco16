@@ -10,10 +10,6 @@
 	"customFields" : {},
 	"layers": [
 		"Tile_Layer_00.png",
-		"Tile_Layer_01.png",
-		"Tile_Layer_04.png",
-		"Tile_Layer_05.png",
-		"Tile_Layer_06.png",
 		"Tile_Layer_10.png"
 	],
 	"entities": {
