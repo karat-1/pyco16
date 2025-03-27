@@ -1,0 +1,70 @@
+{
+  "idle": {
+    "frames": 7,
+    "columns": 7,
+    "loop": true,
+    "speed": 0.15,
+    "centered": false,
+    "offset": [
+      6,
+      6
+    ],
+    "width": 16,
+    "height": 16,
+    "center": [
+      0,
+      0
+    ]
+  },
+  "run": {
+    "frames": 7,
+    "columns": 7,
+    "loop": true,
+    "speed": 0.2,
+    "centered": false,
+    "offset": [
+      6,
+      6
+    ],
+    "width": 16,
+    "height": 16,
+    "center": [
+      0,
+      0
+    ]
+  },
+  "jump": {
+    "frames": 4,
+    "columns": 4,
+    "loop": true,
+    "speed": 0.4,
+    "centered": false,
+    "offset": [
+      6,
+      6
+    ],
+    "width": 16,
+    "height": 16,
+    "center": [
+      0,
+      0
+    ]
+  },
+  "falling": {
+    "frames": 4,
+    "columns": 4,
+    "loop": true,
+    "speed": 0.5,
+    "centered": false,
+    "offset": [
+      6,
+      6
+    ],
+    "width": 16,
+    "height": 16,
+    "center": [
+      0,
+      0
+    ]
+  }
+}

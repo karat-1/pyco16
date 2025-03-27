@@ -1,0 +1,54 @@
+{
+	"identifier": "World",
+	"uniqueIdentifer": "13171ba0-c210-11ef-80e9-d90e791508ba",
+	"x": 0,
+	"y": 0,
+	"width": 1024,
+	"height": 512,
+	"bgColor": "#181425",
+	"neighbourLevels": [],
+	"customFields" : {},
+	"layers": [
+		"Tile_Layer_00.png",
+		"Tile_Layer_01.png",
+		"Tile_Layer_04.png",
+		"Tile_Layer_05.png",
+		"Tile_Layer_06.png",
+		"Tile_Layer_10.png"
+	],
+	"entities": {
+		"Player": [
+			{
+				"id": "Player",
+				"iid": "e025aea0-e920-11ef-a1e2-bfd5c1ea9f58",
+				"layer": "Entities",
+				"x": 456,
+				"y": 240,
+				"width": 4,
+				"height": 6,
+				"color": 39387,
+				"customFields" : {}
+			}
+		],
+		"Wave": [
+			{
+				"id": "Wave",
+				"iid": "30beec00-e920-11ef-a1e2-f3111109ee8c",
+				"layer": "Entities",
+				"x": 464,
+				"y": 248,
+				"width": 12,
+				"height": 4,
+				"color": 45823,
+				"customFields": {
+					"alpha": 80,
+					"wave_type": "WATER",
+					"glow": false,
+					"top_color": "#00B2FF",
+					"bottom_color": "#00B2FF",
+					"top_line_color": "#FFFFFF"
+				}
+			}
+		]
+	}
+}

@@ -1,0 +1,47 @@
+{
+  "X": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [2]],
+    "mode": ["core"]
+  },
+  "A": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [0]],
+    "mode": ["core"]
+  },
+  "A_hold": {
+    "trigger": "hold",
+    "binding": ["gamepad_button", [0]],
+    "mode": ["core"]
+  },
+  "LB": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [4]],
+    "mode": ["core"]
+  },
+  "Y": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [3]],
+    "mode": ["all"]
+  },
+  "B": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [1]],
+    "mode": ["all"]
+  },
+  "RB": {
+    "trigger": "hold",
+    "binding": ["gamepad_button", [5]],
+    "mode": ["core"]
+  },
+    "start": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [7]],
+    "mode": ["all"]
+  },
+    "select": {
+    "trigger": "press",
+    "binding": ["gamepad_button", [6]],
+    "mode": ["all"]
+  }
+}
