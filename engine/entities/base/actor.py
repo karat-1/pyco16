@@ -19,7 +19,6 @@ class Actor(Entity):
         self.debug = True
         self.requests = {}
         self.flags.actor = 1
-        self.hb_manager = self.game.world.hitbox_manager
         self.on_wall_right = False
         self.on_wall_left = False
 

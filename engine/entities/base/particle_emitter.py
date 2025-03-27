@@ -282,7 +282,7 @@ class ParticleEmitter(Entity):
                     pass
             particle.surf = psurf
             particle.gsurf = gsurf
-            self.blit_list.append((psurf, particle.position - self.game.world.render_scroll))
+            self.blit_list.append((psurf, particle.position - self.game.world.camera.render_scroll))
 
     def render(self, surf: pygame.Surface, offset=(0, 0)) -> None:
         super().render(surf, offset)

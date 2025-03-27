@@ -49,8 +49,6 @@ class Entity:
         self.image_base_dimensions = None
         self.render_priority = 0
         self.active_animation = None
-        self.curseable = False
-        self.collideable = False
 
     @property
     def img(self) -> Surface:

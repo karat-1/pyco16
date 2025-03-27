@@ -16,7 +16,6 @@ class Manager:
         self.list_of_objects = {}
         self.spatial_hashmap = {}
         self.list_of_instantiable_objects = INSTANTIABLE_OBJECTS
-        self.hb_manager = self.game.world.hitbox_manager
         self.runtime_added_entities = []
         self.callbacks_post_update = []
 
@@ -174,19 +173,19 @@ class Manager:
                 if entity.render_priority:
                     front.append(entity)
                     continue
-                entity.render(surf, self.game.world.render_scroll)
+                entity.render(surf, self.game.world.camera.render_scroll)
         for entity in front:
-            entity.render(surf, self.game.world.render_scroll)
+            entity.render(surf, self.game.world.camera.render_scroll)
 
-    def spatial_render(self, surf, front=False):
+    def spatial_render(self, surf, camera_offset=(0,0)):
         front = []
         for entity in self.spatial_hashmap[self.player.get_chunk_location()]:
             if entity.render_priority:
                 front.append(entity)
                 continue
-            entity.render(surf, self.game.world.render_scroll)
+            entity.render(surf, camera_offset)
         for entity in front:
-            entity.render(surf, self.game.world.render_scroll)
+            entity.render(surf, camera_offset)
 
     def get_spatial_entities(self, chunk_location):
         return self.spatial_hashmap[chunk_location]
