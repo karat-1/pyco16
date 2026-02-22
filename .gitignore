@@ -1,2 +1,21 @@
-/build/
-/dist/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Editor / IDE settings
+.vscode/
+.idea/
+*.swp
+
+# Optional: cache or logs
+*.log
