@@ -7,9 +7,8 @@ class ExampleScene(Scene):
     def __init__(self, ctx):
         super().__init__(ctx)
         self.rect_position: pygame.Vector2 = pygame.Vector2(0, 0)
-        # Geschwindigkeit in Pixel pro Frame
         self.rect_velocity: pygame.Vector2 = pygame.Vector2(60, 60)
-        self.rect_size: int = 20  # Größe des Rechtecks
+        self.rect_size: int = 20
 
     def update(self):
         super().update()
@@ -31,6 +30,6 @@ class ExampleScene(Scene):
         super().render(surf)
         pygame.draw.rect(
             surf,
-            (0, 0, 0),  # Weiß
+            (0, 0, 0),
             pygame.Rect(self.rect_position.x, self.rect_position.y, self.rect_size, self.rect_size)
         )
