@@ -2,7 +2,6 @@ import json
 import os
 import pygame
 
-SPRITESHEET_PATH = 'resources/sprites/spritesheets'
 COLORKEY = (0, 0, 0)
 
 
@@ -31,38 +30,42 @@ class Spritesheet:
         :param path: a path to the folder with all the spritesheets (can have subfolders)
         :param colorkey: a colorkey to key out the background
         """
-        self.id = path.split('/')[-1]
+        self.id = path.split("/")[-1]
         self.tile_list = []
         self.spritesheet = None
 
+        print("DEBUG path:", repr(path))
+        print("os.path.exists:", os.path.exists(path))
+        print("os.path.isdir:", os.path.isdir(path))
+
         for img in os.listdir(path):
-            if img.split('.')[-1] == 'png':
-                self.spritesheet = load_img(path + '/' + img, None, False)
+            if img.split(".")[-1] == "png":
+                self.spritesheet = load_img(path + "/" + img, None, False)
         try:
-            f = open(path + '/config.json', 'r')
+            f = open(path + "/config.json", "r")
             self.config = json.loads(f.read())
             f.close()
         except FileNotFoundError:
             # TODO: Adjust Config so it can either hold tilesets or objects with variable sizes
             self.config = {
-                'tile_width': 16,
-                'tile_height': 16,
-                'tile_size': 16,
-                'rows': 8,
-                'columns': 4,
+                "tile_width": 16,
+                "tile_height": 16,
+                "tile_size": 16,
+                "rows": 8,
+                "columns": 4,
                 "tile_range": [0, 31],
-                "foliage_range": False
+                "foliage_range": False,
             }
-            f = open(path + '/config.json', 'w')
+            f = open(path + "/config.json", "w")
             f.write(json.dumps(self.config))
             f.close()
 
-        for row in range(0, self.config['rows']):
-            for column in range(0, self.config['columns']):
-                x = self.config['tile_size'] * column
-                y = self.config['tile_size'] * row
-                width = self.config['tile_width']
-                height = self.config['tile_height']
+        for row in range(0, self.config["rows"]):
+            for column in range(0, self.config["columns"]):
+                x = self.config["tile_size"] * column
+                y = self.config["tile_size"] * row
+                width = self.config["tile_width"]
+                height = self.config["tile_height"]
                 rectangle = pygame.Rect(x, y, width, height)
                 try:
                     tile = self.spritesheet.subsurface(rectangle)
@@ -80,14 +83,15 @@ class SpritesheetManager:
     getter function
     """
 
-    def __init__(self):
+    def __init__(self, path):
         self.spritesheets = {}
+        self.path = path
 
     def load_spritesheets(self):
-        for ssheet in os.listdir(SPRITESHEET_PATH):
+        for ssheet in os.listdir(self.path):
             if ".py" in ssheet:
                 continue
-            self.spritesheets[ssheet.lower()] = Spritesheet(SPRITESHEET_PATH + '/' + ssheet.lower(), COLORKEY)
+            self.spritesheets[ssheet.lower()] = Spritesheet(self.path + "/" + ssheet.lower(), COLORKEY)
 
     def get_spritesheet(self, sheetname: str) -> list:
         """

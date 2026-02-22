@@ -54,5 +54,4 @@ class FiniteStateMachine:
         """
         :return: the previous state as a string
         """
-        return self.previous_state.name if self.previous_state else 'default'
-
+        return self.previous_state.name if self.previous_state else "default"

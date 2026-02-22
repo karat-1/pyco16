@@ -2,6 +2,7 @@ class FiniteState:
     """
     A State Object which can encapsulate behaviour and is part of a StateMachine
     """
+
     def __init__(self, entity_obj, state_machine):
         """
         :param entity_obj: an Entity type object
@@ -12,7 +13,7 @@ class FiniteState:
         self.exiting_state = None
         self.start_time = 0
         self.animation_finished = False
-        self.name = 'Default'
+        self.name = "Default"
         self.action_possible = False
         self.transitional_data = None
         self.is_locked = False

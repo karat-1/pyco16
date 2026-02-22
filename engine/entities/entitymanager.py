@@ -2,101 +2,137 @@ import uuid
 import json
 import pygame
 
-from engine.core.engineconstants import RESOURCEPATHS
-from engine.core.engineconstants import INSTANTIABLE_OBJECTS
-from project.player_entities.player import Player
+from engine.core.engineconfig import RESOURCEPATHS
+from engine.core.engineconfig import INSTANTIABLE_OBJECTS
+
+
+class EntityRoomData:
+    def __init__(self):
+        self.room_key: tuple[int, int, int, int] = (0, 0, 0, 0)
+        self.room_entities = []
 
 
 class Manager:
-    def __init__(self, game):
-        self.game = game
+    def __init__(self, ctx, wctx):
+        self.ctx = ctx
+        self.wctx = wctx
         self.player = None
-        self.__resource_paths = RESOURCEPATHS['rooms']
+        self.__resource_paths = RESOURCEPATHS["rooms"]
+
+        # is the actual list of all objects, ordered by inserition time
         self.__all_entities = []
+        # global entities persist between changes and are always updated
+        self.__global_entities = []
+        # holds a dict of all entities by type
         self.list_of_objects = {}
+        # a hashmap which will map entities to their region
         self.spatial_hashmap = {}
+
         self.list_of_instantiable_objects = INSTANTIABLE_OBJECTS
+        # entities that are added at runtime, this list will be added to the entity lists after update() finished
         self.runtime_added_entities = []
+        # deprecated
         self.callbacks_post_update = []
 
-        self.init_spatialhash()
-
-    def init_spatialhash(self):
-        self.spatial_hashmap = {}
-        for x in range(0, 16):  # TODO: hardcoded value muss replaced werden
-            for y in range(0, 8):  # TODO: hardcoded value muss replaced werden
-                chunk_location = (x, y)
-                self.spatial_hashmap[chunk_location] = []
-
-    def __create_object(self, object_class_name: str, parameter: dict, return_object=False):
-        parameter['game'] = self.game
-        parameter['creator'] = "Manager"
-        parameter['position'] = pygame.Vector2(parameter['x'], parameter['y'])
-        parameter['tile_data'] = self.game.world.tilemap
-        parameter = {**parameter, **parameter['customFields']}
+    def __create_object(self, object_class_name: str, parameter: dict):
+        parameter["ctx"] = self.ctx
+        parameter["wctx"] = self.wctx
+        parameter["creator"] = "Manager"
+        parameter["position"] = pygame.Vector2(parameter["x"], parameter["y"])
+        parameter["tile_data"] = self.wctx.tilemap
+        parameter = {**parameter, **parameter["customFields"]}
         instantiable_object = self.list_of_instantiable_objects[object_class_name]
         temp_obj = instantiable_object(**parameter)
-        # TODO: check can be simplified
         if temp_obj.__class__.__name__ in self.list_of_instantiable_objects.keys():
             self.__add_entity(temp_obj)
             if object_class_name == "Player":
                 self.player = temp_obj
-        if return_object:
-            return temp_obj
+        return temp_obj
 
-    def instantiate_entities(self, room_name: str):
+    def instantiate_entities(self, entities: dict):
         self.list_of_objects = {}
-        self.init_spatialhash()
         self.__all_entities = []
         self.list_of_instantiable_objects = INSTANTIABLE_OBJECTS
-        room_data = self.read_ldtk_room_data(room_name)
-        entities_to_init = room_data['entities']  # list of entities where each project is a dict
-
-        for entity, entity_data in entities_to_init.items():
-            for ed in entity_data:
-                self.__create_object(entity, ed)
+        entities_to_init = entities
+        for room_key, room_entities in entities_to_init.items():
+            edr = EntityRoomData()
+            edr.room_key = room_key
+            self.spatial_hashmap[room_key] = edr
+            for entity, entity_data in room_entities.all_entities.items():
+                for ed in entity_data:
+                    for e in ed:
+                        self.__create_object(entity, e)
 
         for entity in self.__all_entities:
             entity.init_entity()
 
+    def reset_entities(self):
+        for entity in self.__all_entities:
+            entity.reset_entity()
+
+    def _find_room_key_for_point(self, x, y):
+        for room_key in self.spatial_hashmap.keys():
+            rx, ry, rw, rh = room_key
+            if rx <= x < rx + rw and ry <= y < ry + rh:
+                return room_key
+        return None
+
+    def __add_entity(self, entity):
+        if entity.is_global:
+            self.__global_entities.append(entity)
+            self.__all_entities.append(entity)
+            return
+
+        # Find the correct room via bounding-box match
+        cx = entity.rect.centerx
+        cy = entity.rect.centery
+        room_key = self._find_room_key_for_point(cx, cy)
+
+        if room_key is None:
+            raise ValueError(f"Entity at ({cx},{cy}) is not inside any room!")
+
+        if entity.__class__.__name__ in self.list_of_objects.keys():
+            self.list_of_objects[entity.__class__.__name__].append(entity)
+            self.spatial_hashmap[room_key].room_entities.append(entity)
+        else:
+            self.list_of_objects[entity.__class__.__name__] = [entity]
+            self.spatial_hashmap[room_key].room_entities.append(entity)
+
+        self.__all_entities.append(entity)
+        entity.init_entity()
+
     def read_room_data(self, room_name):
-        path = self.__resource_paths + '/' + room_name + '.json'
-        f = open(path, 'r')
+        path = self.__resource_paths + "/" + room_name + ".json"
+        f = open(path, "r")
         room_data = json.loads(f.read())
         f.close()
         return room_data
 
     def read_ldtk_room_data(self, room_name):
         # TODO: hard coded value
-        path = "resources/ldtkdata/example_world/simplified/World/data.json"
-        f = open(path, 'r')
+        path = self.ctx.resource_paths.data
+        f = open(path, "r")
         room_data = json.loads(f.read())
         f.close()
         return room_data
 
-    def gen_player(self) -> None:
-        pass
-
-    def set_player(self, player, pos: pygame.Vector2):
-        pass
-
     def get_player(self):
         return self.player
 
+    def set_player_position(self, position):
+        old_entity_list = self.spatial_hashmap[self.player.get_chunk_location()]
+        old_entity_list.remove(self.player)
+        self.player.set_pos(pygame.Vector2(position[0], position[1]))
+        self.spatial_hashmap[self.player.get_chunk_location()].append(self.player)
+
     def init_player(self, position: pygame.Vector2):
-        self.player = Player(game=self.game,
-                             position=position,
-                             controllable=True,
-                             size=pygame.Vector2(16, 16),
-                             creator="Manager",
-                             id=str(uuid.uuid4()))
-        self.__add_entity(self.player)
+        pass
 
     def update(self):
         for entity_type in self.list_of_objects:
             for i, entity in enumerate(self.list_of_objects[entity_type]):
-                alive = entity.update(self.game.window.dt)
-                if not alive:
+                entity.update(self.ctx.window.dt)
+                if not entity.alive:
                     self.list_of_objects[entity_type].pop(i)
 
         self.__add_runtime_added_entities()
@@ -109,40 +145,41 @@ class Manager:
 
     def __add_runtime_added_entities(self):
         for entity in self.runtime_added_entities:
+            entity.init_entity()
             self.__add_entity(entity)
         self.runtime_added_entities.clear()
 
-    def spatial_update(self):
-        # TODO: hardcoded values here
-        chunk_location = self.player.get_chunk_location()
-        entity_list = self.get_spatial_entities(chunk_location)
-        entity_list = [entity for entity in entity_list if entity.update(self.game.window.dt)]
-        for entity in entity_list[:]:
-            if chunk_location != entity.get_chunk_location():
-                is_leaving = entity.on_leave_chunk()
-                if not is_leaving:
-                    continue
-                self.spatial_hashmap[entity.get_chunk_location()].append(entity)
-                entity_list.remove(entity)
-        self.spatial_hashmap[chunk_location] = entity_list
+    def spatial_update(self, dt):
+        chunk_location = self._find_room_key_for_point(self.player.position.x, self.player.position.y)
+        entity_list = self.get_spatial_entities(self.player.position)
+
+        # Update with sideffect hack
+        # noinspection PyStatementEffect
+        entities_to_remove = [e for e in entity_list if not (e.update(dt), e.alive)[1]]
+
+        # this does something u fucking retard
+        # noinspection PyStatementEffect
+        [e for e in self.__global_entities if (e.update(dt), e.alive)[1]]
+
+        for e in entities_to_remove:
+            try:
+                self.spatial_hashmap[chunk_location].room_entities.remove(e)
+                self.__all_entities.remove(e)
+            except ValueError:
+                print(ValueError)
+
+        new_chunk = self._find_room_key_for_point(self.player.position.x, self.player.position.y)
+        if new_chunk != chunk_location:
+            # TODO: event needs to be fired in on_leave_chunk()
+            self.spatial_hashmap[chunk_location].room_entities.remove(self.player)
+            self.spatial_hashmap[new_chunk].room_entities.append(self.player)
+            chunk_location = new_chunk
+
+        if self.player not in self.spatial_hashmap[chunk_location].room_entities:
+            self.spatial_hashmap[chunk_location].room_entities.append(self.player)
+
         self.__add_runtime_added_entities()
         self.__execute_entity_callbacks()
-
-    def get_player(self):
-        return self.player
-
-    def get_drone(self):
-        return next((entity for entity in self.__all_entities if entity.flags.is_drone), None)
-
-    def __add_entity(self, entity):
-        chunk_position = ((int(entity.rect.centerx // 64)), int((entity.rect.centery // 64)))
-        self.__all_entities.append(entity)
-        if entity.__class__.__name__ in self.list_of_objects.keys():
-            self.list_of_objects[entity.__class__.__name__].append(entity)
-            self.spatial_hashmap[chunk_position].append(entity)
-        else:
-            self.list_of_objects[entity.__class__.__name__] = [entity]
-            self.spatial_hashmap[chunk_position].append(entity)
 
     def __remove_entity(self, entity):
         pass
@@ -173,13 +210,17 @@ class Manager:
                 if entity.render_priority:
                     front.append(entity)
                     continue
-                entity.render(surf, self.game.world.camera.render_scroll)
+                entity.render(surf, self.wctx.camera.render_scroll)
         for entity in front:
-            entity.render(surf, self.game.world.camera.render_scroll)
+            entity.render(surf, self.wctx.camera.render_scroll)
 
-    def spatial_render(self, surf, camera_offset=(0,0)):
+    def spatial_render(self, surf, camera_offset=(0, 0)):
         front = []
-        for entity in self.spatial_hashmap[self.player.get_chunk_location()]:
+        entities_to_render = self.spatial_hashmap[
+            self._find_room_key_for_point(self.player.rect.centerx, self.player.rect.centery)
+        ].room_entities.copy()
+        entities_to_render.extend(self.__global_entities)
+        for entity in entities_to_render:
             if entity.render_priority:
                 front.append(entity)
                 continue
@@ -187,12 +228,6 @@ class Manager:
         for entity in front:
             entity.render(surf, camera_offset)
 
-    def get_spatial_entities(self, chunk_location):
-        return self.spatial_hashmap[chunk_location]
-
-    def remove_all_minerblocks(self):
-        for entity_list in self.spatial_hashmap.values():
-            for value in entity_list:
-                if value.flags.miner_rock:
-                    value.destroy()
-                    value.flags.collideable = False
+    def get_spatial_entities(self, position) -> list:
+        room_location = self._find_room_key_for_point(position[0], position[1])
+        return self.spatial_hashmap[room_location].room_entities

@@ -12,7 +12,7 @@ class Entity:
     sprite and mask properties, mathematical functions, rendering and the update loop.
     """
 
-    def __init__(self, game, position: Vector2, controllable: bool = False, *args, **kwargs):
+    def __init__(self, ctx, wctx, position: Vector2, controllable: bool = False, *args, **kwargs):
         """
         Sets up the basic Entity with default values
 
@@ -22,13 +22,14 @@ class Entity:
         :param controller: If it is controllable or not
         """
 
-        self.game = game
+        self.ctx = ctx
+        self.wctx = wctx
         self.position: Vector2 = deepcopy(position)
-        self.size: Vector2 = Vector2(kwargs.get('width'), kwargs.get('height'))
+        self.size: Vector2 = Vector2(kwargs.get("width"), kwargs.get("height"))
         self.flags: ENTITYTYPES = ENTITYTYPES()
-        self.creator = kwargs.get('creator')
-        self.id: str = kwargs.get('id')
-        self.category: str = 'default'
+        self.creator = kwargs.get("creator")
+        self.id: str = kwargs.get("id")
+        self.category: str = "default"
         self.flip: list[bool] = [False, False]
         self.centered: bool = False
         self.alive: bool = True
@@ -36,19 +37,23 @@ class Entity:
         self.face: list[int] = [1, 0]
         self.scale: list[int] = [1, 1]
         self.opacity: int = 255
-        self.rotation: float = kwargs.get('rotation')
-        self.gravity: float = .19
+        self.rotation: float = kwargs.get("rotation")
+        self.gravity: float = 0.19
         self.velocity: Vector2 = Vector2(0, 0)
+        self.external_velocity: Vector2 = Vector2(0, 0)
+        self.velocity_scale: float = 1.0
         self.fractals: Vector2 = Vector2(0, 0)
         self.final_velocity: Vector2 = Vector2(0, 0)
         self.gravity_timer: int = 0
         self.controllable = controllable
-        self.em = self.game.world.get_entity_manager()
+        self.em = self.wctx.entities
         self.active_animation: None
         self.current_image: Surface = None
         self.image_base_dimensions = None
         self.render_priority = 0
         self.active_animation = None
+        self.paused = False
+        self.is_global = False
 
     @property
     def img(self) -> Surface:
@@ -58,9 +63,14 @@ class Entity:
             self.set_image(self.active_animation.get_current_animation_frame())
             img = self.current_image
         if self.scale != [1, 1]:
-            img = pygame.transform.scale(img, (
-                int(self.scale[0] * self.image_base_dimensions[0]), int(self.scale[1] * self.image_base_dimensions[1])))
-        if any(self.flip):
+            img = pygame.transform.scale(
+                img,
+                (
+                    max(1, int(self.scale[0] * self.image_base_dimensions[0])),
+                    max(1, int(self.scale[1] * self.image_base_dimensions[1])),
+                ),
+            )
+        if any(self.flip) and img:
             img = pygame.transform.flip(img, self.flip[0], self.flip[1])
         if self.opacity != 255:
             img.set_alpha(self.opacity)
@@ -71,8 +81,12 @@ class Entity:
         if not self.centered:
             return pygame.Rect(self.position.x, self.position.y, self.size.x, self.size.y)
         else:
-            return pygame.Rect((self.position.x - self.img.get_width()) // 1,
-                               (self.position.y - self.img.get_width()) // 1, self.size.x, self.size.y)
+            return pygame.Rect(
+                (self.position.x - self.img.get_width()) // 1,
+                (self.position.y - self.img.get_width()) // 1,
+                self.size.x,
+                self.size.y,
+            )
 
     @property
     def ground_check(self) -> pygame.Rect:
@@ -91,7 +105,7 @@ class Entity:
         :return: Nothing
         """
         if force:
-            self.active_animation = self.game.content_manager.get_animation(entity_name, action_id)
+            self.active_animation = self.ctx.content.get_animation(entity_name, action_id)
 
     def set_image(self, surf: pygame.Surface = False):
         """
@@ -104,6 +118,9 @@ class Entity:
             self.image_base_dimensions = list(surf.get_size())
 
     def init_entity(self):
+        pass
+
+    def reset_entity(self):
         pass
 
     def calculate_fractions(self):
@@ -119,9 +136,10 @@ class Entity:
         self.fractals = pygame.Vector2(0, 0)
 
     def get_chunk_location(self) -> tuple:
-        # TODO: hardcoded values
-        return int((self.position.x + (self.size.x // 2)) // self.game.world.room_size_px.x), int(
-            (self.position.y + (self.size.y // 2)) // self.game.world.room_size_px.y)
+        return int(self.rect.centerx), int(self.rect.centery)
+
+    def set_velocity_scale(self, scale):
+        self.velocity_scale = scale
 
     def set_scale(self, new_scale: int, fit_hitbox=True):
         """
@@ -135,8 +153,13 @@ class Entity:
         except AttributeError:
             self.scale = [new_scale, new_scale]
         if fit_hitbox:
-            self.size = self.size = [int(self.scale[0] * self.image_base_dimensions[0]),
-                                     int(self.scale[1] * self.image_base_dimensions[1])]
+            self.size = self.size = [
+                int(self.scale[0] * self.image_base_dimensions[0]),
+                int(self.scale[1] * self.image_base_dimensions[1]),
+            ]
+
+    def create_render_rect(self, rect: pygame.Rect, offset: list) -> pygame.Rect:
+        return pygame.Rect(rect.x - offset[0], rect.y - offset[1], rect.width, rect.height)
 
     def get_angle(self, target):
         """
@@ -188,14 +211,6 @@ class Entity:
     def damage(self, amount, **kwargs):
         pass
 
-    def curse(self):
-        self.curseable = True
-        print("enemy cursed")
-
-    def use_curse(self, callback):
-        callback()
-        self.curseable = False
-
     def render(self, surf: pygame.Surface, offset=(0, 0)) -> None:
         """
         The rendering function of an project.
@@ -207,15 +222,26 @@ class Entity:
         if self.img:
             if not self.can_rotate:
                 if self.scale == [1, 1]:
-                    surf.blit(self.img, ((int(self.position[0]) - offset[0]), (int(self.position[1]) - offset[1])))
+                    surf.blit(
+                        self.img,
+                        (int(self.position[0] - offset[0] - self.img.get_width() // 2),
+                         int(self.position[1] - offset[1] - self.img.get_height())),
+                    )
                 else:
-                    surf.blit(self.img, (
-                    (self.position[0] - offset[0]) - (self.img.get_width() - self.image_base_dimensions[0]) // 2,
-                    (self.position[1] - offset[1]) - (self.img.get_height() - self.image_base_dimensions[1]) // 2))
+                    surf.blit(
+                        self.img,
+                        (int(self.position[0] - offset[0] - self.img.get_width() // 2),
+                         int(self.position[1] - offset[1] - self.img.get_height())),
+                    )
             else:
                 rotated_img = pygame.transform.rotate(self.img, self.rotation)
-                surf.blit(rotated_img, (self.rect.centerx - int(rotated_img.get_width() / 2) - offset[0],
-                                        self.rect.centery - int(rotated_img.get_height() / 2) - offset[1]))
+                surf.blit(
+                    rotated_img,
+                    (
+                        self.rect.centerx - int(rotated_img.get_width() / 2) - offset[0],
+                        self.rect.centery - int(rotated_img.get_height() / 2) - offset[1],
+                    ),
+                )
 
     def update(self, dt) -> Union[bool, None]:
         """
@@ -223,11 +249,9 @@ class Entity:
         :param dt: delta time
         :return: True
         """
-        if not self.alive:
-            return
         if self.active_animation:
             self.active_animation.play(dt)
-        return self.alive
+        return self.paused
 
     def on_leave_chunk(self):
         return True

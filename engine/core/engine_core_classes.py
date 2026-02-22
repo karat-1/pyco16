@@ -61,8 +61,7 @@ class Line:
 
     @staticmethod
     def __onSegment(p, q, r):
-        if ((q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and
-                (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))):
+        if (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y)):
             return True
         return False
 
@@ -78,15 +77,17 @@ class Line:
         """
         target_cell = target_position / tile_size  # tile size
         vec_ray_start = pygame.Vector2(self.__x1 / tile_size, self.__y1 / tile_size)
-        vec_ray_dir = (target_cell - vec_ray_start)
+        vec_ray_dir = target_cell - vec_ray_start
         vec_ray_dir = vec_ray_dir.normalize()
 
         # to account for divide by zero exceptions
         vec_ray_dir.x += 0.000000001
         vec_ray_dir.y += 0.000000001
 
-        vec_ray_stepsize = pygame.Vector2(math.sqrt(1 + (vec_ray_dir.y / vec_ray_dir.x) * (vec_ray_dir.y / vec_ray_dir.x)),
-                                          math.sqrt(1 + (vec_ray_dir.x / vec_ray_dir.y) * (vec_ray_dir.x / vec_ray_dir.y)))
+        vec_ray_stepsize = pygame.Vector2(
+            math.sqrt(1 + (vec_ray_dir.y / vec_ray_dir.x) * (vec_ray_dir.y / vec_ray_dir.x)),
+            math.sqrt(1 + (vec_ray_dir.x / vec_ray_dir.y) * (vec_ray_dir.x / vec_ray_dir.y)),
+        )
 
         vec_map_check = pygame.Vector2(int(vec_ray_start.x), int(vec_ray_start.y))
         vec_ray_length_1d = pygame.Vector2()
@@ -134,10 +135,15 @@ class Line:
         :param rect: rectangle of the object collisions should be checked with
         :return: True or False wether or not the line collides with given rectangle
         """
-        edges = {'top': [pygame.Vector2(rect.topright), pygame.Vector2(rect.topleft)],
-                 'bottom': [pygame.Vector2(rect.bottomright), pygame.Vector2(rect.bottomleft)],
-                 'left': [pygame.Vector2(rect.topleft), pygame.Vector2(rect.bottomleft)],
-                 'right': [pygame.Vector2(rect.topright), pygame.Vector2(rect.bottomright)]}
+        edges = {
+            "top": [pygame.Vector2(rect.topright), pygame.Vector2(rect.topleft)],
+            "bottom": [
+                pygame.Vector2(rect.bottomright),
+                pygame.Vector2(rect.bottomleft),
+            ],
+            "left": [pygame.Vector2(rect.topleft), pygame.Vector2(rect.bottomleft)],
+            "right": [pygame.Vector2(rect.topright), pygame.Vector2(rect.bottomright)],
+        }
 
         for key in edges:
             if self.collideline(edges[key][0], edges[key][1]):
@@ -192,6 +198,10 @@ class Line:
         self.__x2 = x2
         self.__y2 = y2
 
-
     def render(self, surf, offset, color=(0, 255, 0)):
-        pygame.draw.line(surf, color, (self.__x1 - offset.x, self.__y1 - offset.y), (self.__x2 - offset.x, self.__y2 - offset.y))
+        pygame.draw.line(
+            surf,
+            color,
+            (self.__x1 - offset.x, self.__y1 - offset.y),
+            (self.__x2 - offset.x, self.__y2 - offset.y),
+        )

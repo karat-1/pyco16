@@ -7,12 +7,13 @@ from engine.content.fontmanager import FontManager
 
 class ContentManager:
 
-    def __init__(self):
-        self.__animations = AnimationManager()
-        self.__sprite_sheet_manager = SpritesheetManager()
-        self.__image_manager = ImageManager()
-        self.__background_manager = BackgroundManager()
-        self.__font_manager = FontManager()
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.__animations = AnimationManager(self.ctx.resource_paths.animations)
+        self.__sprite_sheet_manager = SpritesheetManager(self.ctx.resource_paths.animations)
+        self.__image_manager = ImageManager(self.ctx.resource_paths.animations)
+        self.__background_manager = BackgroundManager(self.ctx.resource_paths.animations)
+        self.__font_manager = FontManager(self.ctx.resource_paths.animations)
         self.load_assets()
 
     def load_assets(self):

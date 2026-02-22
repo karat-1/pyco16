@@ -2,8 +2,18 @@ import pygame
 
 
 class HitBox:
-    def __init__(self, entity, position, size, game, duration=15, decrement=0.5, on_timer=True, offset=(0, 0),
-                 on_hit=[]):
+    def __init__(
+        self,
+        entity,
+        position,
+        size,
+        game,
+        duration=15,
+        decrement=0.5,
+        on_timer=True,
+        offset=(0, 0),
+        on_hit=[],
+    ):
         self.game = game
         self.position = position
         self.entity = entity
@@ -58,9 +68,26 @@ class HitboxManager:
         self.entity_manager = self.game.world.entities
         self.hitboxes_list = []
 
-    def create_hitbox(self, entity, position, size, duration=15, on_timer=True, offset=(0, 0), on_hit=None):
-        hitbox = HitBox(entity, position, size, self.game, duration=duration, on_timer=on_timer, offset=offset,
-                        on_hit=on_hit)
+    def create_hitbox(
+        self,
+        entity,
+        position,
+        size,
+        duration=15,
+        on_timer=True,
+        offset=(0, 0),
+        on_hit=None,
+    ):
+        hitbox = HitBox(
+            entity,
+            position,
+            size,
+            self.game,
+            duration=duration,
+            on_timer=on_timer,
+            offset=offset,
+            on_hit=on_hit,
+        )
         self.hitboxes_list.append(hitbox)
         return hitbox
 
@@ -77,12 +104,21 @@ class HitboxManager:
         for hitbox in self.hitboxes_list:
             for entity in self.entity_manager.get_all_entities():
                 # TODO: This check needs to be replaced by a single flag as the project handles the collision
-                if entity.flags.actor or entity.flags.projectile or entity.flags.hitable_prop or entity.flags.wallsword_prop:
+                if (
+                    entity.flags.actor
+                    or entity.flags.projectile
+                    or entity.flags.hitable_prop
+                    or entity.flags.wallsword_prop
+                ):
                     hitbox.check_collision(entity)
 
     def render(self, surf, offset):
         if self.debug:
             for hitbox in self.hitboxes_list:
                 rect = (
-                    hitbox.position.x - offset[0], hitbox.position.y - offset[1], hitbox.rect.width, hitbox.rect.height)
+                    hitbox.position.x - offset[0],
+                    hitbox.position.y - offset[1],
+                    hitbox.rect.width,
+                    hitbox.rect.height,
+                )
                 pygame.draw.rect(surf, (255, 0, 0), rect)

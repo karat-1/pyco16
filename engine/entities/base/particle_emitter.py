@@ -6,7 +6,7 @@ import pygame
 from pygame import Vector2, Color
 from engine.entities.base.entity import Entity
 import random
-from engine.entities.base.particle_presets import ParticleBaseSettings
+from project.vfx.shapes.particle_presets import ParticleBaseSettings
 
 
 def from_kwargs(kwargs):
@@ -26,7 +26,7 @@ def interpolate_color(color1, color2, t):
         int(color1.r + (color2.r - color1.r) * t),
         int(color1.g + (color2.g - color1.g) * t),
         int(color1.b + (color2.b - color1.b) * t),
-        int(color1.a + (color2.a - color1.a) * t)
+        int(color1.a + (color2.a - color1.a) * t),
     )
 
 
@@ -66,12 +66,11 @@ class ParticleEmitter(Entity):
         self.particles: list[Particle] = []
         self.spawn_timer: float = 0
         self.master_clock: float = 0
-        self.flags.particle_system = 1
+        self.flags.particle_system = True
         self.time_elapsed: float = 0
-        self.parent = kwargs.get('parent', False)
+        self.parent = kwargs.get("parent", False)
         self.blit_list = []
         self.glow_blit_list = []
-        self.room_rect = pygame.Rect(self.position.x // 64 * 64, self.position.y // 64 * 64, 64, 64)
         self.particle_count = 0
         self.is_active = True
 
@@ -85,7 +84,7 @@ class ParticleEmitter(Entity):
 
     def apply_config(self, config: ParticleBaseSettings) -> None:
         """
-        This function is for in engine use only. It will overwrite the existing settings with a new settings
+        This function is for scripting use only. It will overwrite the existing settings with a new settings
         object.
         :param config:
         :return:
@@ -98,41 +97,55 @@ class ParticleEmitter(Entity):
         if isinstance(self.p_base.color_end, str):
             self.p_base.color_end = Color(self.p_base.color_end)
 
-    def spawn_particle_group(self, amount):
+    def spawn_particle_group(self, amount, position=None):
+        spawn_position = self.position
+        if position is not None:
+            spawn_position = position
         for i in range(amount):
-            self.__spawn_particle()
+            self.__spawn_particle(spawn_position)
 
-    def __spawn_particle_rate(self, spawn_rate):
+    def __spawn_particle_rate(self, spawn_rate, position=None):
+        spawn_position = self.position
+        if position is not None:
+            spawn_position = position
         for i in range(spawn_rate):
-            self.__spawn_particle()
+            self.__spawn_particle(spawn_position)
 
     def set_state(self, state: bool):
         self.is_active = state
 
-    def __spawn_particle(self):
-        # particles are spawned in a rect. this calculates an offset from the rect origin
-        rnd_x = random.randint(0, self.size.x)
-        rnd_y = random.randint(0, self.size.y)
+    def __spawn_particle(self, position):
+        # Spawn position (inside the emitter rect)
+        rnd_x = random.randint(0, int(self.size.x))
+        rnd_y = random.randint(0, int(self.size.y))
+        pos = Vector2(position.x + rnd_x, position.y + rnd_y)
 
-        # that offset is applied here
-        pos_x = self.position.x + rnd_x
-        pos_y = self.position.y + rnd_y
+        # Velocity setup
+        base_vel = self.p_base.velocity.copy()  # Vector2(x, y)
 
-        # this is the frequence and phase of the sine wave and lifetime.
-        # each particle needs its own freq and phase so they dont move in sync
-        frequency = random.uniform(0.3, 0.6)
-        phase = random.uniform(0.6, 2 * math.pi)
-        random_lifetime_deviation = 0
+        # Apply random direction flipping (independent for x/y)
+        if self.p_base.random_x_direction and self.p_base.random_y_direction:
+            angle = random.uniform(0, 2 * math.pi)
+            magnitude = random.uniform(self.p_base.min_velocity, self.p_base.max_velocity)
+            base_vel = Vector2(magnitude * math.cos(angle), magnitude * math.sin(angle))
+        elif self.p_base.random_x_direction:
+            base_vel.x *= random.choice([-1, 1])
+        elif self.p_base.random_y_direction:
+            base_vel.y *= random.choice([-1, 1])
 
-        rnd_x_dir = random.choice([-1, 1]) if self.p_base.random_x_dir else 1
-        rnd_y_dir = random.choice([-1, 1]) if self.p_base.random_y_dir else 1
+        # Apply random deviation (symmetric around base velocity)
+        deviation = random.uniform(-self.p_base.velocity_deviation, self.p_base.velocity_deviation)
+        vel = base_vel + Vector2(deviation, deviation)
 
-        rnd_x_deviation = random.uniform(0, self.p_base.random_velocity_deviation)
+        # Optional: small lifetime variation
+        lifetime = self.p_base.lifetime
+        lifetime += random.uniform(-0.2, 0.2)
 
-        v = Vector2(self.p_base.particle_velocity_x * rnd_x_dir + rnd_x_deviation,
-                    self.p_base.particle_velocity_y * rnd_y_dir)
+        # Sine frequency & phase (still needed even in linear mode)
+        frequency = random.uniform(*self.p_base.movement.sine.frequency_range)
+        phase = random.uniform(*self.p_base.movement.sine.phase_range)
 
-        # create surf placeholder, get the proper surf and color it accordingly
+        # Initial surface (only for RECT/CIRCLE for now)
         psurf = None
         match self.p_base.particle_type:
             case "RECT":
@@ -141,22 +154,26 @@ class ParticleEmitter(Entity):
             case "CIRCLE":
                 psurf = self._get_circle_surface(self.p_base.start_size)
                 psurf.fill(self.p_base.color_start)
-            case "ANIMATION":
-                pass
+            case "LINE" | "POINT" | "POLYGON" | "ANIMATION":
+                pass  # handled in render/update later
 
-        particle = Particle(position=Vector2(pos_x, pos_y),
-                            start_position=Vector2(pos_x, pos_y),
-                            velocity=v,
-                            frequency=frequency,
-                            phase=phase,
-                            direction=1,
-                            color=self.p_base.color_start,
-                            time_elapsed=0,
-                            lifetime=self.p_base.lifetime - random_lifetime_deviation,
-                            size=self.p_base.start_size,
-                            surf=psurf,
-                            alpha=self.p_base.start_alpha,
-                            gsurf=None)
+        # Create particle
+        particle = Particle(
+            position=pos,
+            start_position=pos.copy(),
+            velocity=vel,
+            frequency=frequency,
+            phase=phase,
+            direction=1,
+            color=self.p_base.color_start,
+            time_elapsed=0,
+            lifetime=lifetime,
+            size=self.p_base.start_size,
+            surf=psurf,
+            alpha=self.p_base.start_alpha,
+            gsurf=None,
+        )
+
         self.particles.append(particle)
         self.particle_count += 1
 
@@ -166,13 +183,13 @@ class ParticleEmitter(Entity):
         self.spawn_timer += dt
         self.blit_list.clear()
         self.glow_blit_list.clear()
-        # checks wether particles are automatically added or by an event driven function or others
+        # checks wether particles are automatically added or by an eventsystem driven function or others
         if self.is_active:
             match self.p_base.spawn_type:
                 case "AUTO":
-                    self.__update_auto()
+                    self.__spawn_auto()
                 case "EVENT":
-                    self.__update_spawn()
+                    self.__spawn_event()
 
         # particles that are instanced need to be updated based on the config that is given
         self.__update_particles(dt)
@@ -180,13 +197,12 @@ class ParticleEmitter(Entity):
 
     def update_position(self, position: Vector2):
         """
-        If an emitter is attached to an project its position has to be updated. This function
+        If an emitter is attached to an entity its position has to be updated. This function
         should be called if for any reason the position of the emitter needs to be changed
         :param position:
         :return: None
         """
         self.position = position
-        self.room_rect = pygame.Rect(self.position.x // 64 * 64, self.position.y // 64 * 64, 64, 64)
 
     def _get_rect_surface(self, size: int) -> pygame.Surface:
         """
@@ -208,87 +224,131 @@ class ParticleEmitter(Entity):
             return self._SURFACES_CIRCLE[radius - 1].copy()
         raise ValueError("Radius must be between 1 and 10")
 
-    def __update_auto(self):
+    def __spawn_auto(self):
         if self.spawn_timer >= self.p_base.spawn_delay:
             rnd = random.randint(0, 100)
             if rnd < self.p_base.particle_chance:
                 self.__spawn_particle_rate(self.p_base.spawn_rate)
                 self.spawn_timer = 0
 
-    def __update_spawn(self):
+    def __spawn_event(self):
         pass
 
-    def __update_particles(self, dt):
-        # remove particles that are not inside the room
-        self.particles = [p for p in self.particles if self.room_rect.collidepoint(p.position)]
+    def __update_particles(self, dt: float) -> None:
+        """
+        Update all active particles according to current configuration.
+        """
 
-        # update the remaining particles
-        for particle in self.particles:
-            # positional update
-            if self.p_base.sin_x:
-                particle.position.x += particle.direction * (
-                        (math.sin(self.time_elapsed * particle.frequency + particle.phase) * 1) / 8)
-            else:
-                particle.position.x += particle.velocity.x * dt
-
-            if self.p_base.sin_y:
-                particle.position.y += particle.direction * (
-                        (math.sin(self.time_elapsed * particle.frequency + particle.phase) * 1) / 8)
-            else:
-                particle.position.y += particle.velocity.y * dt
-
-            # time update
+        for particle in self.particles[:]:  # [:] → safe to remove during iteration
+            # Time update
+            # We clamp dt to prevent extreme simulation steps
             MIN_DT = 1 / 240
             _dt = max(dt, MIN_DT)
             particle.time_elapsed += _dt
-            try:
-                if particle.time_elapsed >= particle.lifetime:
-                    self.particles.remove(particle)
-            except ValueError as e:
-                print(f"{e}: Particle already removed")
 
-            # color size interpolation
-            t = (particle.time_elapsed / particle.lifetime) ** 2
-            particle.color = interpolate_color(particle.color, self.p_base.color_end, t)
+            # Early out if lifetime exceeded
+            if particle.time_elapsed >= particle.lifetime:
+                self.particles.remove(particle)
+                continue
+
+            # Position / Movement update
+            movement = self.p_base.movement
+
+            if movement.mode == "sine" and movement.sine.enabled:
+                # Sine movement mode
+                cfg = movement.sine
+                # Choose time base (global or per-particle independent)
+                t = particle.time_elapsed if cfg.independent_timing else self.time_elapsed
+                sine_value = math.sin(t * particle.frequency + particle.phase)
+                if cfg.axes in ("x", "both"):
+                    particle.position.x += sine_value * cfg.amplitude
+                if cfg.axes in ("y", "both"):
+                    particle.position.y += sine_value * cfg.amplitude
+            elif movement.mode == "cubic":
+                t_progress = min(particle.time_elapsed / particle.lifetime, 1.0)
+                ease_factor = (1.0 - t_progress) ** 1.5  # power curve, very popular
+                particle.position += particle.velocity * _dt * ease_factor
+                if self.p_base.gravity != 0:
+                    particle.velocity.y += self.p_base.gravity * _dt
+            else:
+                # Default: linear movement + gravity
+                particle.position += particle.velocity * _dt
+
+                # Apply gravity (if any)
+                if self.p_base.gravity != 0:
+                    particle.velocity.y += self.p_base.gravity * _dt
+
+            # Interpolation (color, size, alpha)
+            t = (particle.time_elapsed / particle.lifetime) ** 2  # quadratic ease-out
+
+            particle.color = interpolate_color(
+                particle.color, self.p_base.color_end, t
+            )
             particle.size = lerp(particle.size, self.p_base.end_size, t)
             particle.alpha = lerp(particle.alpha, self.p_base.end_alpha, t)
 
-            # after data is set, get correct surf, and mutate it accordingly to updated data
+            # Surface / Glow preparation
             psurf = None
             gsurf = None
+
+            current_size = clamp(int(particle.size), 1, 10)
+
             match self.p_base.particle_type:
                 case "RECT":
-                    psurf = self._get_rect_surface(clamp(int(particle.size), 1, 10))
+                    psurf = self._get_rect_surface(current_size).copy()
                     psurf.fill(particle.color)
                     psurf.set_alpha(particle.alpha)
+
                     if self.p_base.glow_size > 0:
-                        gsurf = self._get_rect_surface(clamp(int(particle.size + self.p_base.glow_size + random.choice(
-                            [self.p_base.random_glow, -self.p_base.random_glow])), 1, 10))
-                        gsurf.fill((int(particle.color.r * (particle.alpha / 255)),
-                                    int(particle.color.g * (particle.alpha / 255)),
-                                    int(particle.color.b * (particle.alpha / 255))))
+                        glow_size = clamp(
+                            int(particle.size + self.p_base.glow_size +
+                                random.choice([-self.p_base.glow_random_variation,
+                                               self.p_base.glow_random_variation])),
+                            1, 10
+                        )
+                        gsurf = self._get_rect_surface(glow_size).copy()
+                        gsurf.fill((
+                            int(particle.color.r * (particle.alpha / 255)),
+                            int(particle.color.g * (particle.alpha / 255)),
+                            int(particle.color.b * (particle.alpha / 255)),
+                        ))
+
                 case "CIRCLE":
-                    psurf = self._get_circle_surface(clamp(int(particle.size), 1, 10))
+                    psurf = self._get_circle_surface(current_size).copy()
                     psurf.fill(particle.color)
                     psurf.set_alpha(particle.alpha)
+
                     if self.p_base.glow_size > 0:
-                        gsurf = self._get_circle_surface(
-                            clamp(int(particle.size + self.p_base.glow_size + random.choice(
-                                [self.p_base.random_glow, -self.p_base.random_glow])), 1, 10))
-                        gsurf.fill((int(particle.color.r * (particle.alpha / 255)),
-                                    int(particle.color.g * (particle.alpha / 255)),
-                                    int(particle.color.b * (particle.alpha / 255))))
-                case "ANIMATION":
+                        glow_size = clamp(
+                            int(particle.size + self.p_base.glow_size +
+                                random.choice([-self.p_base.glow_random_variation,
+                                               self.p_base.glow_random_variation])),
+                            1, 10
+                        )
+                        gsurf = self._get_circle_surface(glow_size).copy()
+                        gsurf.fill((
+                            int(particle.color.r * (particle.alpha / 255)),
+                            int(particle.color.g * (particle.alpha / 255)),
+                            int(particle.color.b * (particle.alpha / 255)),
+                        ))
+
+                case "LINE" | "POINT" | "POLYGON" | "ANIMATION":
+                    # For now we skip surface creation for these types
+                    # (LINE is drawn directly in render, others are future work)
                     pass
+
             particle.surf = psurf
             particle.gsurf = gsurf
-            self.blit_list.append((psurf, particle.position - self.game.world.camera.render_scroll))
+
+            # Prepare for fast rendering (camera relative)
+            if psurf is not None:
+                self.blit_list.append((psurf, particle.position - self.wctx.camera.render_scroll))
 
     def render(self, surf: pygame.Surface, offset=(0, 0)) -> None:
         super().render(surf, offset)
         # rendering lines has unfortunately be done iteratively as they are calculated
         # at runtime based on their direction
-        if self.p_base.particle_type == 'LINE':
+        if self.p_base.particle_type == "LINE":
             for p in self.particles:
                 velocity_length = math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2)
                 direction_x = p.velocity.x / velocity_length
