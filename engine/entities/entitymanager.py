@@ -154,7 +154,6 @@ class Manager:
         # noinspection PyStatementEffect
         entities_to_remove = [e for e in entity_list if not (e.update(dt), e.alive)[1]]
 
-        # this does something u fucking retard
         # noinspection PyStatementEffect
         [e for e in self.__global_entities if (e.update(dt), e.alive)[1]]
 
