@@ -10,10 +10,10 @@ class ContentManager:
     def __init__(self, ctx):
         self.ctx = ctx
         self.__animations = AnimationManager(self.ctx.resource_paths.animations)
-        self.__sprite_sheet_manager = SpritesheetManager(self.ctx.resource_paths.animations)
-        self.__image_manager = ImageManager(self.ctx.resource_paths.animations)
-        self.__background_manager = BackgroundManager(self.ctx.resource_paths.animations)
-        self.__font_manager = FontManager(self.ctx.resource_paths.animations)
+        self.__sprite_sheet_manager = SpritesheetManager(self.ctx.resource_paths.spritesheets)
+        self.__image_manager = ImageManager(self.ctx.resource_paths.images)
+        self.__background_manager = BackgroundManager(self.ctx.resource_paths.backgrounds)
+        self.__font_manager = FontManager(self.ctx.resource_paths.fonts)
         self.load_assets()
 
     def load_assets(self):

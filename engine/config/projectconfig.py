@@ -37,6 +37,7 @@ class ResourcePaths:
     animations: str = resource_path("resources/sprites/animations")
     thumbnails: str = resource_path("resources/sprites/thumbnails")
     sprites: str = resource_path("resources/sprites")
+    spritesheets: str = resource_path("resources/sprites/spritesheets")
     rooms: str = resource_path("resources/ldtkdata/example-project/simplified/")
     data: str = resource_path("resources/ldtkdata/example-project/simplified/World/data.json")
     backgrounds: str = resource_path("resources/sprites/backgrounds")

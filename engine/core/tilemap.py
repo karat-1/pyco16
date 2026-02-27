@@ -91,7 +91,6 @@ class Tilemap:
     def __init__(self,ctx=None):
         self.ctx = ctx
         self.__tile_size: int = self.ctx.game_settings.tile_size
-        self.__resource_paths = self.ctx.resource_paths.rooms
         self.__tileset_surface: Surface = None
         self.__room_data: dict[tuple[int, int], RoomData] = {}
         self.rooms_sorted_x = []
