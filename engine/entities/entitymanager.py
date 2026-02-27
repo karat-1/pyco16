@@ -112,8 +112,7 @@ class Manager:
         f.close()
         return room_data
 
-    def read_ldtk_room_data(self, room_name):
-        # TODO: hard coded value
+    def read_ldtk_room_data(self):
         path = self.ctx.resource_paths.data
         f = open(path, "r")
         room_data = json.loads(f.read())

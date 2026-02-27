@@ -88,12 +88,18 @@ class SpritesheetManager:
     def __init__(self, path):
         self.spritesheets = {}
         self.path = path
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def load_spritesheets(self):
-        for ssheet in os.listdir(self.path):
-            if ".py" in ssheet:
-                continue
-            self.spritesheets[ssheet.lower()] = Spritesheet(self.path + "/" + ssheet.lower(), COLORKEY)
+        try:
+            for ssheet in os.listdir(self.path):
+                if ".py" in ssheet:
+                    continue
+                self.spritesheets[ssheet.lower()] = Spritesheet(self.path + "/" + ssheet.lower(), COLORKEY)
+        except FileNotFoundError:
+            self.logger.warning("No spritesheets found at %s", self.path)
+        else:
+            self.logger.info("Spritesheets loaded")
 
     def get_spritesheet(self, sheetname: str) -> list:
         """

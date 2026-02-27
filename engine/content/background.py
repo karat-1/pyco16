@@ -1,3 +1,5 @@
+import logging
+
 import pygame
 from pygame import Vector2 as vec2
 import os
@@ -12,15 +14,21 @@ class BackgroundManager:
         # this has already resource_path executed upon
         self.path = path
         self.active_background = None
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def load_backgrounds(self):
-        for background in os.listdir(self.path):
-            if ".py" in background:
-                continue
-            _bg_img = load_img(self.path + "/" + background, (0, 0, 0))
-            _bg = Background(_bg_img)
-            _bg_name = background[:-4]
-            self.__backgrounds[_bg_name] = _bg
+        try:
+            for background in os.listdir(self.path):
+                if ".py" in background:
+                    continue
+                _bg_img = load_img(self.path + "/" + background, (0, 0, 0))
+                _bg = Background(_bg_img)
+                _bg_name = background[:-4]
+                self.__backgrounds[_bg_name] = _bg
+        except FileNotFoundError:
+            self.logger.warning("No backgrounds found at %s", self.path)
+        else:
+            self.logger.info("Backgrounds loaded")
 
     def update(self, dt):
         if not self.active_background:

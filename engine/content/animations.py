@@ -12,11 +12,15 @@ class AnimationManager:
         self.animation_path = path
 
     def load_animations(self):
-        for character in os.listdir(self.animation_path):
-            if ".py" in character:
-                continue
-            self._animations[character] = AnimationData(self.animation_path + "/" + character)
-
+        try:
+            for character in os.listdir(self.animation_path):
+                if ".py" in character:
+                    continue
+                self._animations[character] = AnimationData(self.animation_path + "/" + character)
+        except FileNotFoundError:
+            self.logger.warning("No animations in %s", self.animation_path)
+        else:
+            self.logger.info("Animations loaded")
     def get_animation(self, character_id, action_id):
         a: AnimationData = self._animations[character_id]
         b: Animation = a.get_animation(action_id)
