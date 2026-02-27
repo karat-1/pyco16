@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 from engine.content.contentmanager_new import ContentManager
 from engine.core.gamecontext import GameContext
@@ -12,6 +13,14 @@ from engine.sound.soundmanager import SoundManager
 from engine.config.projectconfig import WindowSettings, GameSettings, ResourcePaths
 
 
+def _configure_logging() -> None:
+    logging.basicConfig(
+        level=logging.DEBUG,  # or INFO if you want fewer messages
+        format="%(asctime)s.%(msecs)03d [%(levelname)s] %(name)s:%(lineno)d: %(message)s",
+        datefmt="%H:%M:%S"
+    )
+
+
 class Game:
     def __init__(
         self,
@@ -19,6 +28,10 @@ class Game:
         game_settings: Optional[GameSettings] = None,
         resource_paths: Optional[ResourcePaths] = None
     ) -> None:
+        _configure_logging()
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger.info("Pyco16 Booting up")
+
         self.window_settings: WindowSettings = window_settings or WindowSettings()
         self.game_settings: GameSettings = game_settings or GameSettings()
         self.resource_paths: ResourcePaths = resource_paths or ResourcePaths()
@@ -60,13 +73,13 @@ class Game:
             while self.running:
                 self.update()
         except KeyboardInterrupt:
-            print("Game stopped by user.")
+            self.logger.info("Game stopped by user.")
         finally:
             self.shutdown()
 
     def shutdown(self) -> None:
-        print("Shutting down game.")
+        self.logger.info("Shutting down game.")
 
 
 if __name__ == "__main__":
-    game = Game().run()
+    Game().run()

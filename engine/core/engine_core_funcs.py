@@ -88,10 +88,25 @@ def oscillating_lerp(min_val, max_val, speed, time, smoothness=2):
 
 
 def resource_path(relative_path: str) -> str:
-    """Get absolute path to resource, works for dev and PyInstaller"""
+    """
+    Get absolute path to a resource.
+    Works for:
+    - Normal Python (development)
+    - PyInstaller bundles
+    - Any working directory
+    Always resolves relative to the repo root.
+    """
     try:
-        base_path = sys._MEIPASS  # Set by PyInstaller
+        # PyInstaller: temporary folder where resources are unpacked
+        base_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.abspath(".")
+        current = os.path.abspath(os.path.dirname(__file__))
+        while current != os.path.dirname(current):
+            if os.path.isdir(os.path.join(current, "resources")):
+                base_path = current
+                break
+            current = os.path.dirname(current)
+        else:
+            base_path = os.path.abspath(os.path.dirname(__file__))
 
     return os.path.join(base_path, relative_path)

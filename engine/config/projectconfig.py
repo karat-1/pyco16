@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from typing import Type
+
 from pygame import Color
 from engine.core.engine_core_funcs import resource_path
+from engine.entities.base.entity import Entity
 
 
 @dataclass(frozen=True)
@@ -34,9 +37,15 @@ class ResourcePaths:
     animations: str = resource_path("resources/sprites/animations")
     thumbnails: str = resource_path("resources/sprites/thumbnails")
     sprites: str = resource_path("resources/sprites")
-    rooms: str = resource_path("resources/ldtkdata/rogue-samurai-tower/simplified/")
-    data: str = resource_path("resources/ldtkdata/rogue-samurai-tower/simplified/World/data.json")
+    spritesheets: str = resource_path("resources/sprites/spritesheets")
+    rooms: str = resource_path("resources/ldtkdata/example-project/simplified/")
+    data: str = resource_path("resources/ldtkdata/example-project/simplified/World/data.json")
     backgrounds: str = resource_path("resources/sprites/backgrounds")
     images: str = resource_path("resources/sprites/images")
     savegames: str = resource_path("resources/save")
     fonts: str = resource_path("resources/fonts")
+    sounds: str = resource_path("resources/sounds")
+
+@dataclass(frozen=True)
+class InstantiableEntities:
+    default: Type[Entity] = Entity

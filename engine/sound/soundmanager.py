@@ -1,7 +1,8 @@
+import logging
 import os
 import pygame
 
-from engine.core.engineconfig import RESOURCEPATHS
+from engine.config.projectconfig import ResourcePaths
 
 
 class SoundManager:
@@ -24,9 +25,10 @@ class SoundManager:
         pygame.mixer.pre_init(freq, size, channels, buffer)
         pygame.mixer.init()
 
-        self.base_path = RESOURCEPATHS['sound']
+        self.base_path = self.ctx.resource_paths.sounds
         self.volume = volume
         self.sounds = {}
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         self._load_all()
 
@@ -44,15 +46,17 @@ class SoundManager:
                     sound = pygame.mixer.Sound(full)
                     sound.set_volume(self.volume)
                     self.sounds[key] = sound
-                    print(f"[SoundManager] Loaded sound: {key}")
+                    self.logger.info(f"Loaded sound: {key}")
 
-        print(f"[SoundManager] Loaded {len(self.sounds)} sounds")
+        self.logger.info(f"Loaded {len(self.sounds)} sounds")
 
     # -------------------------------------------------
 
     def play(self, name):
         if name not in self.sounds:
+            self.logger.error("Sound not found")
             raise KeyError(f"Sound not found: {name}")
+
         self.sounds[name].play()
 
     def stop(self, name):

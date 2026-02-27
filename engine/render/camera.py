@@ -1,9 +1,8 @@
+import logging
+
 import pygame
 from pygame import Vector2, Rect
 import random
-
-from project.events.player_change_room import PlayerChangeRoom
-from project.projectsettings import WindowSettings
 
 
 class Camera:
@@ -17,8 +16,8 @@ class Camera:
         self.render_scroll = [0, 0]
         self.target = None
         self.restrict_rect_coordinates: list[int] = [0, 0, 0, 0]  # x, y, w, h
-        self.wctx.eventbus.subscribe(PlayerChangeRoom, self.on_player_change_room)
         self.screen_shake_speed = 50
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     @property
     def restrict_rect(self):
@@ -32,13 +31,9 @@ class Camera:
         return Rect(
             self.scroll[0],
             self.scroll[1],
-            WindowSettings.game_resolution_width,
-            WindowSettings.game_resolution_height,
+            self.ctx.window_settings.game_resolution_width,
+            self.ctx.window_settings.game_resolution_height,
         )
-
-    def on_player_change_room(self, event: PlayerChangeRoom):
-        self.restrict_rect_coordinates = event.room_data.room_bounding_box
-        print(self.restrict_rect_coordinates)
 
     def set_restrict_rect(self, coordinates: list[int]):
         self.restrict_rect_coordinates = coordinates
@@ -60,8 +55,8 @@ class Camera:
             self.screen_shake = Vector2(0, 0)
 
         new_scroll = [
-            (self.target.position.x - (WindowSettings.game_resolution_width / 2) + self.screen_shake.x),
-            self.target.position.y - (WindowSettings.game_resolution_height / 2) + self.screen_shake.y,
+            (self.target.position.x - (self.ctx.window_settings.game_resolution_width / 2) + self.screen_shake.x),
+            self.target.position.y - (self.ctx.window_settings.game_resolution_height / 2) + self.screen_shake.y,
         ]
 
         self.scroll[0] = new_scroll[0]
