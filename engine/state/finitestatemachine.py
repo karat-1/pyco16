@@ -1,3 +1,6 @@
+import logging
+
+
 class FiniteStateMachine:
     """
     An object which handles the handling of StateClasses. This can be used inside of
@@ -8,8 +11,9 @@ class FiniteStateMachine:
         self.current_state = None
         self.debug = debug
         self.previous_state = None
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    def change_state(self, new_state, trans_data=None) -> None:
+    def change_state(self, new_state) -> None:
         """
         Changes states of the statemachine
         :param new_state: The state the statemachine should change to

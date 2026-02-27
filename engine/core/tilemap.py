@@ -1,7 +1,8 @@
+import logging
+
 import pygame
 
 from engine.core.tile import Tile
-from engine.core.engineconfig import RESOURCEPATHS
 from pygame import Surface
 import json
 import csv
@@ -90,11 +91,12 @@ class Tilemap:
     def __init__(self,ctx=None):
         self.ctx = ctx
         self.__tile_size: int = self.ctx.game_settings.tile_size
-        self.__resource_paths = RESOURCEPATHS["rooms"]
+        self.__resource_paths = self.ctx.resource_paths.rooms
         self.__tileset_surface: Surface = None
         self.__room_data: dict[tuple[int, int], RoomData] = {}
         self.rooms_sorted_x = []
         self._rooms_x_starts = []
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def get_surround_tiles(self, world_position, radius):
         room: RoomData = self.get_room_at_point(world_position.x, world_position.y)
@@ -174,7 +176,7 @@ class Tilemap:
 
             # Collision layer
             with (folder / "Collision_Layer.csv").open("r", newline="", encoding="utf-8") as f:
-                print("Level Name: ", folder)
+                self.logger.info("Level Name: %s ", folder)
                 room.collider_array = list(csv.reader(f))
 
             # Level metadata
@@ -218,4 +220,4 @@ class Tilemap:
                 (0, 0),
             )
         except ValueError as e:
-            print(e)
+            self.logger.error("Failed to render subsurface to buffer %r", e)

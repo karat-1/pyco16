@@ -1,7 +1,6 @@
 import pygame
 from pygame import Vector2 as vec2
 import os
-from engine.core.engineconfig import RESOURCEPATHS
 from engine.core.engine_core_funcs import load_img
 
 PARALLAXCLASS = [0, 0.05, 0.07, 0.06, 0.85, 0.095]

@@ -1,9 +1,10 @@
-import uuid
 import json
+import logging
+
 import pygame
 
-from engine.core.engineconfig import RESOURCEPATHS
-from engine.core.engineconfig import INSTANTIABLE_OBJECTS
+from engine.entities.base.entity import Entity
+from engine.entities.instantiable_registry import INSTANTIABLE_ENTITIES
 
 
 class EntityRoomData:
@@ -16,23 +17,27 @@ class Manager:
     def __init__(self, ctx, wctx):
         self.ctx = ctx
         self.wctx = wctx
-        self.player = None
-        self.__resource_paths = RESOURCEPATHS["rooms"]
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.__focus_entity = None
+        self.__resource_paths = self.ctx.resource_paths.rooms
 
         # is the actual list of all objects, ordered by inserition time
         self.__all_entities = []
-        # global entities persist between changes and are always updated
+        # global entities persist between spatial changes and are always updated
         self.__global_entities = []
         # holds a dict of all entities by type
         self.list_of_objects = {}
         # a hashmap which will map entities to their region
         self.spatial_hashmap = {}
 
-        self.list_of_instantiable_objects = INSTANTIABLE_OBJECTS
+        self.list_of_instantiable_objects = INSTANTIABLE_ENTITIES
         # entities that are added at runtime, this list will be added to the entity lists after update() finished
         self.runtime_added_entities = []
         # deprecated
         self.callbacks_post_update = []
+
+    def set_focus_entity(self, entity: Entity):
+        self.__focus_entity = entity
 
     def __create_object(self, object_class_name: str, parameter: dict):
         parameter["ctx"] = self.ctx
@@ -45,14 +50,13 @@ class Manager:
         temp_obj = instantiable_object(**parameter)
         if temp_obj.__class__.__name__ in self.list_of_instantiable_objects.keys():
             self.__add_entity(temp_obj)
-            if object_class_name == "Player":
-                self.player = temp_obj
-        return temp_obj
+            return temp_obj
+        else:
+            return None
 
     def instantiate_entities(self, entities: dict):
         self.list_of_objects = {}
         self.__all_entities = []
-        self.list_of_instantiable_objects = INSTANTIABLE_OBJECTS
         entities_to_init = entities
         for room_key, room_entities in entities_to_init.items():
             edr = EntityRoomData()
@@ -116,23 +120,16 @@ class Manager:
         f.close()
         return room_data
 
-    def get_player(self):
-        return self.player
-
-    def set_player_position(self, position):
-        old_entity_list = self.spatial_hashmap[self.player.get_chunk_location()]
-        old_entity_list.remove(self.player)
-        self.player.set_pos(pygame.Vector2(position[0], position[1]))
-        self.spatial_hashmap[self.player.get_chunk_location()].append(self.player)
-
-    def init_player(self, position: pygame.Vector2):
-        pass
+    @property
+    def focus_entity(self):
+        return self.__focus_entity
 
     def update(self):
         for entity_type in self.list_of_objects:
             for i, entity in enumerate(self.list_of_objects[entity_type]):
                 entity.update(self.ctx.window.dt)
                 if not entity.alive:
+                    # TODO: I need a function that does this for the other datastructures as well
                     self.list_of_objects[entity_type].pop(i)
 
         self.__add_runtime_added_entities()
@@ -150,8 +147,8 @@ class Manager:
         self.runtime_added_entities.clear()
 
     def spatial_update(self, dt):
-        chunk_location = self._find_room_key_for_point(self.player.position.x, self.player.position.y)
-        entity_list = self.get_spatial_entities(self.player.position)
+        chunk_location = self._find_room_key_for_point(self.__focus_entity.position.x, self.__focus_entity.position.y)
+        entity_list = self.get_spatial_entities(self.__focus_entity.position)
 
         # Update with sideffect hack
         # noinspection PyStatementEffect
@@ -166,17 +163,17 @@ class Manager:
                 self.spatial_hashmap[chunk_location].room_entities.remove(e)
                 self.__all_entities.remove(e)
             except ValueError:
-                print(ValueError)
+                self.logger.error(ValueError)
 
-        new_chunk = self._find_room_key_for_point(self.player.position.x, self.player.position.y)
+        new_chunk = self._find_room_key_for_point(self.__focus_entity.position.x, self.__focus_entity.position.y)
         if new_chunk != chunk_location:
             # TODO: event needs to be fired in on_leave_chunk()
-            self.spatial_hashmap[chunk_location].room_entities.remove(self.player)
-            self.spatial_hashmap[new_chunk].room_entities.append(self.player)
+            self.spatial_hashmap[chunk_location].room_entities.remove(self.__focus_entity)
+            self.spatial_hashmap[new_chunk].room_entities.append(self.__focus_entity)
             chunk_location = new_chunk
 
-        if self.player not in self.spatial_hashmap[chunk_location].room_entities:
-            self.spatial_hashmap[chunk_location].room_entities.append(self.player)
+        if self.__focus_entity not in self.spatial_hashmap[chunk_location].room_entities:
+            self.spatial_hashmap[chunk_location].room_entities.append(self.__focus_entity)
 
         self.__add_runtime_added_entities()
         self.__execute_entity_callbacks()
@@ -203,7 +200,7 @@ class Manager:
         except KeyError:
             return []
 
-    def render(self, surf, front=False, spatial: bool = False):
+    def render(self, surf):
         front = []
         for entity_type in self.list_of_objects:
             for entity in self.list_of_objects[entity_type]:
@@ -217,7 +214,7 @@ class Manager:
     def spatial_render(self, surf, camera_offset=(0, 0)):
         front = []
         entities_to_render = self.spatial_hashmap[
-            self._find_room_key_for_point(self.player.rect.centerx, self.player.rect.centery)
+            self._find_room_key_for_point(self.__focus_entity.rect.centerx, self.__focus_entity.rect.centery)
         ].room_entities.copy()
         entities_to_render.extend(self.__global_entities)
         for entity in entities_to_render:

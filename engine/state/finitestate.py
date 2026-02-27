@@ -1,3 +1,6 @@
+import logging
+
+
 class FiniteState:
     """
     A State Object which can encapsulate behaviour and is part of a StateMachine
@@ -17,6 +20,7 @@ class FiniteState:
         self.action_possible = False
         self.transitional_data = None
         self.is_locked = False
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def enter_state(self) -> None:
         """
@@ -63,7 +67,7 @@ class FiniteState:
         pass
 
     def print_state(self) -> None:
-        print(self.name)
+        self.logger.info(self.name)
 
     def render_state(self, surf, offset) -> None:
         pass

@@ -1,6 +1,5 @@
 import pygame
 
-from engine.core.engineconfig import RESOURCEPATHS
 from engine.core.engine_core_funcs import load_img
 import os
 

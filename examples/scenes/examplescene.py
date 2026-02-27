@@ -19,8 +19,8 @@ class ExampleScene(Scene):
         max_y = self.ctx.game_settings.room_height - self.rect_size
 
         if self.rect_position.x <= 0 or self.rect_position.x >= max_x:
-            self.rect_velocity.x *= -1  # Richtung umkehren
-            self.rect_position.x = max(0, min((self.rect_position.x, max_x)))  # Clamp
+            self.rect_velocity.x *= -1
+            self.rect_position.x = max(0, min((self.rect_position.x, max_x)))
 
         if self.rect_position.y <= 0 or self.rect_position.y >= max_y:
             self.rect_velocity.y *= -1

@@ -1,6 +1,5 @@
 import pygame
 
-from engine.core.engineconfig import RESOURCEPATHS
 from engine.eventsystem.eventbus import EventBus
 from engine.scene.scenecontext import WorldContext
 
@@ -8,7 +7,7 @@ from engine.scene.scenecontext import WorldContext
 class Scene:
     def __init__(self, ctx):
         self.ctx = ctx
-        self.__resource_paths = RESOURCEPATHS["rooms"]
+        self.__resource_paths = self.ctx.resource_paths.rooms
         self.wctx = WorldContext()
         self.name = "default"
 

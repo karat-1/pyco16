@@ -1,4 +1,3 @@
-from engine.core.engineconfig import RESOURCEPATHS
 import json
 from engine.core.engine_dataclasses import (
     PlayerProgress,
@@ -11,7 +10,7 @@ from dataclasses import asdict
 class SaveGame:
     def __init__(self, ctx):
         self.ctx = ctx
-        self.__path = RESOURCEPATHS["savegames"]
+        self.__path = self.ctx.resource_paths.savegames
         self.__config = None
 
         # progress objects

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pygame
 
@@ -33,10 +34,11 @@ class Spritesheet:
         self.id = path.split("/")[-1]
         self.tile_list = []
         self.spritesheet = None
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-        print("DEBUG path:", repr(path))
-        print("os.path.exists:", os.path.exists(path))
-        print("os.path.isdir:", os.path.isdir(path))
+        self.logger.info("DEBUG path: %r", path)
+        self.logger.info("os.path.exists: %s", os.path.exists(path))
+        self.logger.info("os.path.isdir: %s", os.path.isdir(path))
 
         for img in os.listdir(path):
             if img.split(".")[-1] == "png":
