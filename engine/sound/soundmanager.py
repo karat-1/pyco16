@@ -32,7 +32,6 @@ class SoundManager:
 
         self._load_all()
 
-    # -------------------------------------------------
 
     def _load_all(self):
         supported = (".wav", ".ogg", ".mp3")
@@ -50,12 +49,11 @@ class SoundManager:
 
         self.logger.info(f"Loaded {len(self.sounds)} sounds")
 
-    # -------------------------------------------------
 
     def play(self, name):
         if name not in self.sounds:
             self.logger.error("Sound not found")
-            raise KeyError(f"Sound not found: {name}")
+            return
 
         self.sounds[name].play()
 

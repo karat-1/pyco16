@@ -149,9 +149,12 @@ class Tilemap:
         self.__tileset_surface = None
         self.__room_data = None
 
-    def load_room_ldtk(self):
+    def load_room_ldtk(self, room_name: str = None):
         self.__reset_room()
-        self.__read_room_data_ldtk_gridvania()
+        if room_name:
+            self.__read_room_data_ldtk_gridvania_by_name(room_name)
+        else:
+            self.__read_room_data_ldtk_gridvania()
         self.create_ldtk_tilemap_surface()
 
     def create_ldtk_tilemap_surface(self):
@@ -162,6 +165,44 @@ class Tilemap:
         self.__tileset_surface.fill((0, 0, 0, 0))
         for rd in self.__room_data.values():
             self.__tileset_surface.blit(rd.composite_img, rd.position)
+
+    def __read_room_data_ldtk_gridvania_by_name(self, room_name: str):
+        base = Path(self.ctx.resource_paths.rooms) / room_name
+        rooms: dict[tuple[int, int], RoomData] = {}
+        room_width = self.ctx.game_settings.room_width
+        room_height = self.ctx.game_settings.room_height
+
+        room = RoomData(self.__tile_size)
+        # Collision layer
+        with (base / "Collision_Layer.csv").open("r", newline="", encoding="utf-8") as f:
+            self.logger.info("Level Name: %s ", base)
+            room.collider_array = list(csv.reader(f))
+
+        # Level metadata
+        with (base / "data.json").open("r", encoding="utf-8") as f:
+            level_data = json.load(f)
+        room.position[0] = level_data["x"]
+        room.position[1] = level_data["y"]
+        room.width = level_data["width"]
+        room.height = level_data["height"]
+        room.entities = level_data["entities"]
+        # soon more
+
+        # Composite image
+        room.composite_img = load_img(str(base / "_composite.png"), colorkey=(24, 20, 37))
+
+        # init the room data
+        room.populate_tile_array()
+        room.fix_entity_positions_to_world()
+
+        # Calculate grid position
+        grid_x = room.position[0] // room_width
+        grid_y = room.position[1] // room_height
+        rooms[(grid_x, grid_y)] = room
+
+        self.__room_data = rooms
+        self.rooms_sorted_x = sorted(rooms.values(), key=lambda r: r.position[0])
+        self._rooms_x_starts = [r.position[0] for r in self.rooms_sorted_x]
 
     def __read_room_data_ldtk_gridvania(self):
         base = Path(self.ctx.resource_paths.rooms)
@@ -201,9 +242,7 @@ class Tilemap:
             rooms[(grid_x, grid_y)] = room
 
         self.__room_data = rooms
-        # 2) eine Liste aller Rooms, nach x (linke Kante) sortiert
         self.rooms_sorted_x = sorted(rooms.values(), key=lambda r: r.position[0])
-        # 2a) parallel eine Liste mit den x-starts (nur für bisect)
         self._rooms_x_starts = [r.position[0] for r in self.rooms_sorted_x]
 
     def get_room_at_point(self, px: int, py: int):
