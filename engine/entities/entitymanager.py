@@ -103,7 +103,6 @@ class Manager:
             self.spatial_hashmap[room_key].room_entities.append(entity)
 
         self.__all_entities.append(entity)
-        entity.init_entity()
 
     def read_room_data(self, room_name):
         path = self.__resource_paths + "/" + room_name + ".json"
@@ -112,7 +111,7 @@ class Manager:
         f.close()
         return room_data
 
-    def read_ldtk_room_data(self):
+    def read_ldtk_room_data(self, room_name):
         path = self.ctx.resource_paths.data
         f = open(path, "r")
         room_data = json.loads(f.read())
@@ -123,13 +122,11 @@ class Manager:
     def focus_entity(self):
         return self.__focus_entity
 
-    def update(self):
-        for entity_type in self.list_of_objects:
-            for i, entity in enumerate(self.list_of_objects[entity_type]):
-                entity.update(self.ctx.window.dt)
-                if not entity.alive:
-                    # TODO: I need a function that does this for the other datastructures as well
-                    self.list_of_objects[entity_type].pop(i)
+    def update(self, dt):
+        for entity_type, entity_list in self.list_of_objects.items():
+            for entity in entity_list:
+                entity.update(dt)
+            self.list_of_objects[entity_type] = [e for e in entity_list if e.alive]
 
         self.__add_runtime_added_entities()
         self.__execute_entity_callbacks()
@@ -198,16 +195,21 @@ class Manager:
         except KeyError:
             return []
 
-    def render(self, surf):
+    def render(self, surf, camera_offset=(0,0)):
         front = []
         for entity_type in self.list_of_objects:
             for entity in self.list_of_objects[entity_type]:
                 if entity.render_priority:
                     front.append(entity)
                     continue
-                entity.render(surf, self.wctx.camera.render_scroll)
+                entity.render(surf, camera_offset)
+            for entity in self.__global_entities:
+                if entity.render_priority:
+                    front.append(entity)
+                    continue
+                entity.render(surf, camera_offset)
         for entity in front:
-            entity.render(surf, self.wctx.camera.render_scroll)
+            entity.render(surf, camera_offset)
 
     def spatial_render(self, surf, camera_offset=(0, 0)):
         front = []

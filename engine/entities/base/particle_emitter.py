@@ -6,7 +6,8 @@ import pygame
 from pygame import Vector2, Color
 from engine.entities.base.entity import Entity
 import random
-from project.vfx.shapes.particle_presets import ParticleBaseSettings
+
+from engine.entities.base.particle_settings import ParticleBaseSettings
 
 
 def from_kwargs(kwargs):

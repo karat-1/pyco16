@@ -99,6 +99,8 @@ class Tilemap:
 
     def get_surround_tiles(self, world_position, radius):
         room: RoomData = self.get_room_at_point(world_position.x, world_position.y)
+        if not room:
+            raise LookupError(f"No room found at {world_position}")
         # Calculate local position
         room_world_x = room.position[0]
         room_world_y = room.position[1]
@@ -171,7 +173,7 @@ class Tilemap:
         rooms: dict[tuple[int, int], RoomData] = {}
         room_width = self.ctx.game_settings.room_width
         room_height = self.ctx.game_settings.room_height
-
+        self.logger.info("Load room from path: %s", base)
         room = RoomData(self.__tile_size)
         # Collision layer
         with (base / "Collision_Layer.csv").open("r", newline="", encoding="utf-8") as f:

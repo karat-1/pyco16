@@ -60,7 +60,6 @@ class Window:
 
         self.background_color =  self.ctx.window_settings.window_bg_color
 
-        # ---- OpenGL CONTEXT ----
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
         pygame.display.gl_set_attribute(
@@ -76,7 +75,6 @@ class Window:
         pygame.display.set_caption("Example Apps")
         pygame.mouse.set_visible(True)
 
-        # ---- ModernGL Context ----
         self.gl_ctx = moderngl.create_context()
         self.gl_ctx.enable(moderngl.BLEND)
         self.gl_ctx.blend_func = (
@@ -84,13 +82,11 @@ class Window:
             moderngl.ONE_MINUS_SRC_ALPHA,
         )
 
-        # ---- Shader Program ----
         self.program = self.gl_ctx.program(
             vertex_shader=VERTEX_SHADER,
             fragment_shader=FRAGMENT_SHADER,
         )
 
-        # ---- Fullscreen Quad ----
         quad = self.gl_ctx.buffer(
             array('f', [
                 # x,  y,   u,  v
@@ -108,18 +104,15 @@ class Window:
             "in_tex"
         )
 
-        # ---- Texture matching internal resolution ----
         self.texture = self.gl_ctx.texture(
             (self.base_resolution[0], self.base_resolution[1]),
             components=4
         )
 
-        # Pixel art filtering
         self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
         self.texture.repeat_x = False
         self.texture.repeat_y = False
 
-        # ---- Legacy pygame surface (temporary bridge) ----
         self.display = pygame.Surface(
             (self.base_resolution[0], self.base_resolution[1]),
             flags=pygame.SRCALPHA
@@ -131,7 +124,6 @@ class Window:
         self.cursor_id = "cursor"
         self.freeze_frame = {}
 
-    # --------------------------------------------------
 
     def render_frame(self) -> None:
         """

@@ -23,7 +23,8 @@ class WorldContext:
         "_player",
         "_gradient",
         "_eventbus",
-        "_vfx_manager"
+        "_vfx_manager",
+        "_overlay_manager"
     )
 
     def __init__(self):
@@ -41,6 +42,7 @@ class WorldContext:
         self._textbubbles = None
         self._eventbus = None
         self._vfx_manager = None
+        self._overlay_manager = None
 
         # world state
         self._active_room = None
@@ -114,6 +116,11 @@ class WorldContext:
     def vfx_manager(self): return self._vfx_manager
 
     def set_vfx_manager(self, vfxm): self._assign("_vfx_manager", vfxm)
+
+    @property
+    def overlay_manager(self): return self._overlay_manager
+
+    def set_overlay_manager(self, ovlm): self._assign("_overlay_manager", ovlm)
 
     # ----------------------------------------------------------------------
     # World state

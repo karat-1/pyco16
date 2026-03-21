@@ -172,7 +172,7 @@ class Input:
         return button in self.mouse_buttons_pressed
 
     def get_move_direction(self) -> Tuple[float, float]:
-        """For character movement, returns digital or analog."""
+        """For character movement — returns digital or analog."""
         if self.input_method == "gamepad" and self.joystick:
             lx = self.joystick.get_axis(0)
             ly = self.joystick.get_axis(1)

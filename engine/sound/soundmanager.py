@@ -13,7 +13,7 @@ class SoundManager:
             size=-16,
             channels=2,
             buffer=512,
-            volume=1.0,
+            volume=0.2,
     ):
         """
         freq     22050 = retro / NES-ish
@@ -28,6 +28,7 @@ class SoundManager:
         self.base_path = self.ctx.resource_paths.sounds
         self.volume = volume
         self.sounds = {}
+        self.sound_queue: list[str] = []
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         self._load_all()
@@ -54,8 +55,18 @@ class SoundManager:
         if name not in self.sounds:
             self.logger.error("Sound not found")
             return
+        if name in self.sound_queue:
+            self.logger.info("Sound %s already registered for current frame", name)
+            return
+        self.sound_queue.append(name)
 
-        self.sounds[name].play()
+    def update(self):
+        self.__play()
+        self.sound_queue.clear()
+
+    def __play(self):
+        for sound in self.sound_queue:
+            self.sounds[sound].play()
 
     def stop(self, name):
         if name in self.sounds:

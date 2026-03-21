@@ -78,7 +78,10 @@ class Camera:
             if self.scroll[1] < self.restrict_rect.top:
                 self.scroll[1] = self.restrict_rect.top
 
-        self.render_scroll = [int(self.scroll[0]), int(self.scroll[1])]
+        self.render_scroll = [
+            int(self.scroll[0] + self.screen_shake.x),
+            int(self.scroll[1] + self.screen_shake.y),
+        ]
 
     def invoke_screenshake(self, duration: float, strength: int):
         _strength = pygame.Vector2(strength, strength)
